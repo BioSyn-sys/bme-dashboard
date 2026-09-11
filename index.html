@@ -8,6 +8,7 @@
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
 :root{--bg:#0F172A;--card:#1E293B;--hover:#334155;--bdr:#334155;--txt:#F8FAFC;--mut:#94A3B8;--gold:#F59E0B;--blue:#3B82F6;--green:#10B981;--red:#EF4444;--purple:#8B5CF6}
 *{box-sizing:border-box;font-family:'Sarabun',sans-serif}
@@ -68,6 +69,9 @@ body{background:var(--bg);color:var(--txt);padding:20px;min-height:100vh}
 .admin-box{background:var(--card);border:1px solid var(--bdr);border-radius:16px;padding:30px;width:600px;max-width:95vw;max-height:90vh;overflow-y:auto}
 .admin-box h3{font-weight:700;margin-bottom:20px}
 .admin-box label{font-weight:600;color:var(--gold);font-size:13px;margin-bottom:6px;display:block}
+.drop-zone{border:2px dashed var(--bdr);border-radius:12px;padding:24px;text-align:center;background:var(--bg);cursor:pointer;transition:all .2s;margin-bottom:16px}
+.drop-zone:hover,.drop-zone.dragover{border-color:var(--blue);background:rgba(59,130,246,.05)}
+.drop-zone i{font-size:36px;color:var(--gold);margin-bottom:8px;display:block}
 .admin-box textarea{background:var(--bg);border:1px solid var(--bdr);color:var(--txt);border-radius:8px;padding:12px;width:100%;font-size:12px;font-family:monospace}
 .admin-box textarea:focus{outline:none;border-color:var(--blue)}
 .sync-status{font-size:12px;padding:6px 12px;border-radius:6px;display:inline-block}
@@ -208,8 +212,18 @@ body{background:var(--bg);color:var(--txt);padding:20px;min-height:100vh}
 </div>
 
 <div class="mb-3">
-<label><i class="bi bi-cloud-arrow-up me-1"></i>อัพโหลดข้อมูลใหม่ (วางจาก Excel)</label>
-<textarea id="pasteData" rows="8" placeholder="Copy ข้อมูลจาก Excel แล้ววางที่นี่&#10;&#10;รูปแบบ (Tab-separated):&#10;JOB_ID&#9;หน่วยงาน&#9;รายละเอียด&#9;วันแจ้งซ่อม&#9;วันค้าง&#9;ช่างผู้รับผิดชอบ"></textarea>
+<label><i class="bi bi-file-earmark-excel text-success me-1"></i>อัพโหลดไฟล์ Excel (.xlsx)</label>
+<div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+<i class="bi bi-cloud-arrow-up-fill"></i>
+<div class="fw-bold text-light mb-1" id="dropText">ลากไฟล์ Excel (.xlsx) มาวางที่นี่ หรือ คลิกเพื่อเลือกไฟล์</div>
+<div class="text-muted small">รองรับไฟล์สรุปงานค้าง .xlsx ทุกรูปแบบ</div>
+</div>
+<input type="file" id="fileInput" accept=".xlsx, .xls" style="display:none" onchange="handleFileSelect(event)">
+</div>
+
+<div class="mb-3">
+<label><i class="bi bi-clipboard-data me-1"></i>หรือ วางข้อความจาก Excel (Copy/Paste)</label>
+<textarea id="pasteData" rows="4" placeholder="Copy ข้อมูลตารางจาก Excel แล้ววางที่นี่..."></textarea>
 </div>
 
 <div class="d-flex gap-2 flex-wrap mb-3">
@@ -226,6 +240,7 @@ body{background:var(--bg);color:var(--txt);padding:20px;min-height:100vh}
 <script>
 const REPO='BioSyn-sys/bme-dashboard',TECHS=['นายสุรศักดิ์ พึ่งเล่ห์','นายศุภชัย วิภาหะ','นายยุทธนา หยุมปัญญา','นายถิรวุฒิ บุญเรือง','นายพุฒิพงศ์ จันมงคล'],TC=['#3B82F6','#8B5CF6','#10B981','#EF4444','#F59E0B'];
 let allJobs=[],curFlt='ALL',curEdit=null,CI={},statusData={},closedJobs=[];
+let parsedExcelJobs=null;
 const ADMIN_PW='bme2569';
 
 // === Toast ===
@@ -252,19 +267,16 @@ async function ghPut(file,content,msg){
 // === Load Data ===
 async function loadData(){
     try{
-        // Load base data
         const r=await fetch('data.json');const data=await r.json();
         document.getElementById('dateLabel').textContent='\u{1F4C5} ข้อมูล ณ '+data.updateDate;
         allJobs=data.jobs||[];
 
-        // Load status from GitHub (if available) or localStorage fallback
         try{
             const sf=await ghGet('status.json');
             if(sf){statusData=JSON.parse(atob(sf.content));closedJobs=statusData._closed||[];}
             else{loadLocalStatus();}
         }catch(e){loadLocalStatus();}
 
-        // Apply status overrides
         allJobs.forEach(j=>{
             const u=statusData[j.jobId];
             if(u){
@@ -273,7 +285,6 @@ async function loadData(){
             }
         });
 
-        // Filter out closed jobs
         allJobs=allJobs.filter(j=>!closedJobs.includes(j.jobId));
         allJobs.sort((a,b)=>(b['จำนวนวันค้าง']||0)-(a['จำนวนวันค้าง']||0));
 
@@ -286,7 +297,6 @@ async function loadData(){
 }
 
 function loadLocalStatus(){
-    // Fallback: load from localStorage
     const s=localStorage.getItem('bme_status');
     if(s){statusData=JSON.parse(s);closedJobs=statusData._closed||[];}
     const c=localStorage.getItem('bme_closed');
@@ -406,9 +416,7 @@ function closeJob(){
     const method=document.getElementById('sM').value;
     if(method==='--เลือกวิธีซ่อม--'){showToast('กรุณาเลือกวิธีซ่อมก่อนปิดงาน','er');return;}
     if(!confirm('ยืนยันปิดงาน JOB '+curEdit+'?\nงานจะหายจาก Dashboard'))return;
-    // Save final status
     saveUpd();
-    // Add to closed list
     if(!closedJobs.includes(curEdit))closedJobs.push(curEdit);
     allJobs=allJobs.filter(j=>j.jobId!==curEdit);
     saveLocalStatus();updateMetrics();buildCharts();buildTechCards();renderTbl();
@@ -424,6 +432,7 @@ function adminAuth(){
         document.getElementById('adminLogin').style.display='none';
         document.getElementById('adminPanel').style.display='block';
         document.getElementById('ghToken').value=ghToken();
+        setupDragDrop();
         adminLog('Admin login สำเร็จ');
     }else{showToast('รหัสผ่านไม่ถูกต้อง','er');}
 }
@@ -431,6 +440,102 @@ function adminAuth(){
 function adminLog(msg){
     const l=document.getElementById('adminLog');
     l.innerHTML='['+new Date().toLocaleTimeString('th')+'] '+msg+'<br>'+l.innerHTML;
+}
+
+// === Drag & Drop Excel File Parsing (SheetJS) ===
+function setupDragDrop(){
+    const dz=document.getElementById('dropZone');
+    if(!dz||dz.dataset.setup)return;
+    dz.dataset.setup='1';
+
+    ['dragenter','dragover','dragleave','drop'].forEach(eName=>{
+        dz.addEventListener(eName,e=>{e.preventDefault();e.stopPropagation();},false);
+    });
+    ['dragenter','dragover'].forEach(eName=>{
+        dz.addEventListener(eName,()=>dz.classList.add('dragover'),false);
+    });
+    ['dragleave','drop'].forEach(eName=>{
+        dz.addEventListener(eName,()=>dz.classList.remove('dragover'),false);
+    });
+    dz.addEventListener('drop',e=>{
+        const dt=e.dataTransfer;
+        if(dt&&dt.files.length)processExcelFile(dt.files[0]);
+    });
+}
+
+function handleFileSelect(e){
+    if(e.target.files.length)processExcelFile(e.target.files[0]);
+}
+
+function processExcelFile(file){
+    if(!file.name.endsWith('.xlsx')&&!file.name.endsWith('.xls')){
+        showToast('กรุณาเลือกไฟล์ Excel (.xlsx หรือ .xls)','er');return;
+    }
+    document.getElementById('dropText').innerHTML='\u2705 เลือกไฟล์: <strong>'+file.name+'</strong> ('+(file.size/1024).toFixed(1)+' KB)';
+    adminLog('กำลังอ่านไฟล์ Excel: '+file.name);
+
+    const reader=new FileReader();
+    reader.onload=function(e){
+        try{
+            const data=new Uint8Array(e.target.result);
+            const workbook=XLSX.read(data,{type:'array'});
+            parsedExcelJobs=[];
+
+            workbook.SheetNames.forEach(sheetName=>{
+                const worksheet=workbook.Sheets[sheetName];
+                const jsonRows=XLSX.utils.sheet_to_json(worksheet,{header:1});
+                
+                jsonRows.forEach((row,idx)=>{
+                    if(!row||row.length<2)return;
+                    let jobId=null,ward='',detail='',dateStr='',days=0,tech=sheetName;
+
+                    for(let c=0;c<row.length;c++){
+                        const val=String(row[c]||'').trim();
+                        if(/^\d{6}$/.test(val)){ // 6-digit JOB ID
+                            jobId=val;
+                            ward=String(row[c+1]||'').trim();
+                            detail=String(row[c+2]||'').trim();
+                            dateStr=String(row[c+3]||'').trim();
+                            days=parseInt(row[c+4])||0;
+                            if(row[c+5]&&TECHS.includes(String(row[c+5]).trim())){
+                                tech=String(row[c+5]).trim();
+                            }
+                            break;
+                        }
+                    }
+
+                    if(jobId){
+                        if(!TECHS.includes(tech)){
+                            if(TECHS.includes(sheetName))tech=sheetName;
+                            else tech='นายสุรศักดิ์ พึ่งเล่ห์';
+                        }
+                        const existStatus=statusData[jobId];
+                        parsedExcelJobs.push({
+                            jobId:jobId,
+                            'หน่วยงาน':ward,
+                            'รายละเอียด':detail,
+                            'วันแจ้งซ่อม':dateStr,
+                            'จำนวนวันค้าง':days,
+                            'สถานะ':existStatus?existStatus.method||'รอมอบหมาย':'รอมอบหมาย',
+                            'วิธีซ่อม':existStatus?existStatus.method||'--เลือกวิธีซ่อม--':'--เลือกวิธีซ่อม--',
+                            'ช่างผู้รับผิดชอบ':existStatus?existStatus.tech||tech:tech
+                        });
+                    }
+                });
+            });
+
+            // Unique by jobId
+            const uMap=new Map();parsedExcelJobs.forEach(j=>uMap.set(j.jobId,j));
+            parsedExcelJobs=Array.from(uMap.values());
+
+            adminLog('\u2705 อ่านสำเร็จ! พบ '+parsedExcelJobs.length+' รายการจากไฟล์ Excel');
+            showToast('\u2705 อ่านสำเร็จ '+parsedExcelJobs.length+' รายการ! กด "อัพโหลด + Sync" เพื่อบันทึก');
+        }catch(err){
+            adminLog('\u274C อ่านไฟล์ไม่สำเร็จ: '+err.message);
+            showToast('อ่านไฟล์ไม่สำเร็จ: '+err.message,'er');
+        }
+    };
+    reader.readAsArrayBuffer(file);
 }
 
 async function syncToGitHub(){
@@ -453,43 +558,41 @@ async function adminUpload(){
     if(!tk){showToast('กรุณาใส่ GitHub Token','er');return;}
     localStorage.setItem('gh_pat',tk);
 
-    const raw=document.getElementById('pasteData').value.trim();
-    if(!raw){showToast('กรุณาวางข้อมูลก่อน','er');return;}
+    let newJobs=[];
 
-    adminLog('กำลังแปลงข้อมูล...');
-    const lines=raw.split('\n').filter(l=>l.trim());
-    const newJobs=[];
-    lines.forEach((line,i)=>{
-        const cols=line.split('\t');
-        if(cols.length<5||cols[0].toLowerCase()==='ลำดับ'||cols[0].toLowerCase()==='job')return;
-        // Try to detect: JOB_ID, หน่วยงาน, รายละเอียด, วันแจ้งซ่อม, วันค้าง, ช่าง
-        let jobId,ward,detail,date,days,tech;
-        if(cols.length>=6){
-            jobId=cols[0].trim();ward=cols[1].trim();detail=cols[2].trim();date=cols[3].trim();days=parseInt(cols[4])||0;tech=cols[5].trim();
-        }else{
-            jobId=cols[0].trim();ward=cols[1].trim();detail=cols[2].trim();date=cols[3].trim();days=parseInt(cols[4])||0;tech='นายสุรศักดิ์ พึ่งเล่ห์';
-        }
-        if(jobId&&!isNaN(parseInt(jobId))){
-            // Preserve existing status if job already has one
-            const existStatus=statusData[jobId];
-            newJobs.push({
-                jobId,
-                'หน่วยงาน':ward,
-                'รายละเอียด':detail,
-                'วันแจ้งซ่อม':date,
-                'จำนวนวันค้าง':days,
-                'สถานะ':existStatus?existStatus.method||'รอมอบหมาย':'รอมอบหมาย',
-                'วิธีซ่อม':existStatus?.method||'--เลือกวิธีซ่อม--',
-                'ช่างผู้รับผิดชอบ':existStatus?.tech||tech
-            });
-        }
-    });
+    // Priority 1: Parsed Excel file from drag-drop / file selector
+    if(parsedExcelJobs&&parsedExcelJobs.length){
+        newJobs=parsedExcelJobs;
+        adminLog('ใช้ข้อมูลจากไฟล์ Excelที่เลือก ('+newJobs.length+' รายการ)');
+    }else{
+        // Priority 2: Paste data text box
+        const raw=document.getElementById('pasteData').value.trim();
+        if(!raw){showToast('กรุณาลากไฟล์ Excel วาง หรือวางข้อความก่อน','er');return;}
+        adminLog('กำลังแปลงข้อมูลจากข้อความ...');
+        const lines=raw.split('\n').filter(l=>l.trim());
+        lines.forEach(line=>{
+            const cols=line.split('\t');
+            if(cols.length<5||cols[0].toLowerCase()==='ลำดับ'||cols[0].toLowerCase()==='job')return;
+            let jobId=cols[0].trim(),ward=cols[1].trim(),detail=cols[2].trim(),date=cols[3].trim(),days=parseInt(cols[4])||0,tech=cols[5]?.trim()||'นายสุรศักดิ์ พึ่งเล่ห์';
+            if(jobId&&!isNaN(parseInt(jobId))){
+                const existStatus=statusData[jobId];
+                newJobs.push({
+                    jobId,
+                    'หน่วยงาน':ward,
+                    'รายละเอียด':detail,
+                    'วันแจ้งซ่อม':date,
+                    'จำนวนวันค้าง':days,
+                    'สถานะ':existStatus?existStatus.method||'รอมอบหมาย':'รอมอบหมาย',
+                    'วิธีซ่อม':existStatus?.method||'--เลือกวิธีซ่อม--',
+                    'ช่างผู้รับผิดชอบ':existStatus?.tech||tech
+                });
+            }
+        });
+    }
 
     if(!newJobs.length){showToast('ไม่พบข้อมูลที่ใช้ได้','er');return;}
 
-    // Remove closed jobs from new data
     const activeJobs=newJobs.filter(j=>!closedJobs.includes(j.jobId));
-
     adminLog('พบ '+newJobs.length+' รายการ (active: '+activeJobs.length+')');
 
     try{
@@ -498,13 +601,10 @@ async function adminUpload(){
         await ghPut('data.json',JSON.stringify(dataObj,null,2),'Admin upload new data ('+activeJobs.length+' jobs)');
         adminLog('\u2705 data.json อัพโหลดสำเร็จ!');
 
-        // Also sync status
         await ghPut('status.json',JSON.stringify(statusData,null,2),'Sync status with data upload');
         adminLog('\u2705 status.json sync สำเร็จ!');
 
         showToast('\u2705 อัพโหลด '+activeJobs.length+' รายการ สำเร็จ!');
-
-        // Reload
         setTimeout(()=>location.reload(),2000);
     }catch(e){adminLog('\u274C Error: '+e.message);showToast('อัพโหลดล้มเหลว: '+e.message,'er');}
 }
@@ -516,10 +616,7 @@ function exportCSV(){
     const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'}));a.download='งานค้าง_export.csv';a.click();
 }
 
-// === Init ===
 loadData();
-// Auto-load stored PAT
-if(localStorage.getItem('gh_pat'))document.addEventListener('DOMContentLoaded',()=>{});
 </script>
 </body>
 </html>
