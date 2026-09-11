@@ -1,353 +1,525 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard งานซ่อมค้างรอช่างรับงาน — แผนกศูนย์เครื่องมือแพทย์</title>
-    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
-        :root {
-            --bg-primary: #0F172A;
-            --bg-card: #1E293B;
-            --bg-card-hover: #334155;
-            --border-color: #334155;
-            --text-main: #F8FAFC;
-            --text-muted: #94A3B8;
-            --accent-gold: #F59E0B;
-            --accent-blue: #3B82F6;
-            --accent-green: #10B981;
-            --accent-red: #EF4444;
-            --accent-purple: #8B5CF6;
-        }
-        * { box-sizing: border-box; font-family: 'Sarabun', sans-serif; }
-        body { background: var(--bg-primary); color: var(--text-main); padding: 20px; min-height: 100vh; }
-        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid var(--border-color); flex-wrap: wrap; gap: 12px; }
-        .header-title h1 { font-size: 22px; font-weight: 700; display: flex; align-items: center; gap: 10px; margin: 0; }
-        .header-title p { color: var(--text-muted); font-size: 13px; margin: 4px 0 0; }
-        .badge-date { background: rgba(59,130,246,0.15); color: #60A5FA; border: 1px solid rgba(59,130,246,0.3); padding: 6px 14px; border-radius: 20px; font-weight: 600; font-size: 13px; }
-        .btn-header { background: var(--accent-blue); color: #fff; border: none; padding: 8px 16px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 13px; }
-        .btn-header:hover { opacity: 0.9; }
-        .metric-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; position: relative; overflow: hidden; height: 100%; }
-        .metric-card::before { content: ''; position: absolute; top: 0; left: 0; width: 4px; height: 100%; background: var(--accent-blue); }
-        .metric-card.gold::before { background: var(--accent-gold); }
-        .metric-card.red::before { background: var(--accent-red); }
-        .metric-card.green::before { background: var(--accent-green); }
-        .metric-label { font-size: 13px; color: var(--text-muted); font-weight: 500; }
-        .metric-value { font-size: 32px; font-weight: 700; margin: 6px 0 2px; }
-        .metric-sub { font-size: 12px; color: var(--text-muted); }
-        .chart-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; height: 100%; }
-        .chart-title { font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
-        .charts-row { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; margin-bottom: 20px; }
-        @media (max-width: 1024px) { .charts-row { grid-template-columns: 1fr; } }
-        .tech-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 16px; transition: all 0.2s; cursor: pointer; height: 100%; }
-        .tech-card:hover { transform: translateY(-2px); border-color: var(--accent-blue); }
-        .tech-name { font-weight: 700; font-size: 15px; color: var(--accent-gold); }
-        .tech-count-badge { background: rgba(245,158,11,0.15); color: #FBBF24; padding: 4px 10px; border-radius: 12px; font-weight: 700; font-size: 14px; }
-        .tech-depts { font-size: 12px; color: var(--text-muted); line-height: 1.6; }
-        .tech-pill { background: var(--bg-card); border: 1px solid var(--border-color); color: var(--text-muted); padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
-        .tech-pill:hover { border-color: var(--accent-blue); color: var(--text-main); }
-        .tech-pill.active { background: var(--accent-blue); border-color: var(--accent-blue); color: #fff; font-weight: 600; }
-        .table-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; }
-        .search-input { background: var(--bg-primary); border: 1px solid var(--border-color); color: var(--text-main); padding: 8px 14px; border-radius: 6px; font-size: 13px; width: 300px; max-width: 100%; }
-        .search-input:focus { outline: none; border-color: var(--accent-blue); }
-        .tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
-        .tbl th { background: #0F172A; color: var(--text-muted); font-weight: 600; padding: 10px 12px; position: sticky; top: 0; z-index: 2; border-bottom: 2px solid var(--border-color); }
-        .tbl td { padding: 8px 12px; border-bottom: 1px solid var(--border-color); vertical-align: middle; }
-        .tbl tr:hover td { background: var(--bg-card-hover); }
-        .table-scroll { max-height: 500px; overflow-y: auto; overflow-x: auto; }
-        .badge-alert { background: rgba(239,68,68,0.2); color: #FCA5A5; padding: 2px 8px; border-radius: 4px; font-weight: 600; font-size: 12px; }
-        .badge-warn { background: rgba(245,158,11,0.2); color: #FCD34D; padding: 2px 8px; border-radius: 4px; font-weight: 600; font-size: 12px; }
-        .badge-ok { background: rgba(16,185,129,0.2); color: #6EE7B7; padding: 2px 8px; border-radius: 4px; font-weight: 600; font-size: 12px; }
-        .btn-edit { background: rgba(59,130,246,0.15); border: 1px solid rgba(59,130,246,0.3); color: #60A5FA; padding: 4px 10px; border-radius: 6px; font-size: 12px; cursor: pointer; white-space: nowrap; }
-        .btn-edit:hover { background: var(--accent-blue); color: #fff; }
-        .offcanvas { background: var(--bg-card) !important; color: var(--text-main); border-left: 1px solid var(--border-color); }
-        .offcanvas-header { border-bottom: 1px solid var(--border-color); }
-        .job-header-card { background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 10px; padding: 16px; margin-bottom: 20px; }
-        .form-select-dark, .form-textarea-dark { background: var(--bg-primary); border: 1px solid var(--border-color); color: var(--text-main); border-radius: 6px; padding: 8px 12px; width: 100%; font-size: 13px; }
-        .form-select-dark:focus, .form-textarea-dark:focus { outline: none; border-color: var(--accent-blue); }
-        .form-check-input { background-color: var(--bg-primary); border-color: var(--border-color); }
-        .form-check-input:checked { background-color: var(--accent-blue); border-color: var(--accent-blue); }
-        .btn-save { background: linear-gradient(135deg, var(--accent-green), #059669); color: #fff; border: none; padding: 12px; border-radius: 8px; font-weight: 700; width: 100%; font-size: 15px; cursor: pointer; }
-        .btn-save:hover { opacity: 0.9; }
-        .toast-custom { position: fixed; top: 20px; right: 20px; background: var(--accent-green); color: #fff; padding: 12px 24px; border-radius: 8px; font-weight: 600; z-index: 9999; display: none; box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
-        .section-title { font-size: 17px; font-weight: 700; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
-        @media print { .no-print { display: none !important; } body { background: #fff; color: #000; } }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard งานซ่อมค้างรอช่างรับงาน — BME</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+:root{--bg:#0F172A;--card:#1E293B;--hover:#334155;--bdr:#334155;--txt:#F8FAFC;--mut:#94A3B8;--gold:#F59E0B;--blue:#3B82F6;--green:#10B981;--red:#EF4444;--purple:#8B5CF6}
+*{box-sizing:border-box;font-family:'Sarabun',sans-serif}
+body{background:var(--bg);color:var(--txt);padding:20px;min-height:100vh}
+.hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;padding-bottom:16px;border-bottom:1px solid var(--bdr);flex-wrap:wrap;gap:12px}
+.hdr h1{font-size:22px;font-weight:700;margin:0}
+.hdr p{color:var(--mut);font-size:13px;margin:4px 0 0}
+.badge-dt{background:rgba(59,130,246,.15);color:#60A5FA;border:1px solid rgba(59,130,246,.3);padding:6px 14px;border-radius:20px;font-weight:600;font-size:13px}
+.btn-h{background:var(--blue);color:#fff;border:none;padding:8px 16px;border-radius:6px;font-weight:600;cursor:pointer;font-size:13px}
+.btn-h:hover{opacity:.9}
+.btn-admin{background:rgba(148,163,184,.15);color:#94A3B8;border:1px solid rgba(148,163,184,.2);padding:6px 12px;border-radius:6px;font-size:12px;cursor:pointer;transition:all .2s}
+.btn-admin:hover{background:rgba(148,163,184,.3);color:#CBD5E1}
+.mc{background:var(--card);border:1px solid var(--bdr);border-radius:12px;padding:20px;position:relative;overflow:hidden;height:100%}
+.mc::before{content:'';position:absolute;top:0;left:0;width:4px;height:100%;background:var(--blue)}
+.mc.gd::before{background:var(--gold)}.mc.rd::before{background:var(--red)}.mc.gn::before{background:var(--green)}
+.ml{font-size:13px;color:var(--mut);font-weight:500}.mv{font-size:32px;font-weight:700;margin:6px 0 2px}.ms{font-size:12px;color:var(--mut)}
+.cc{background:var(--card);border:1px solid var(--bdr);border-radius:12px;padding:20px;height:100%}
+.ct{font-size:15px;font-weight:600;margin-bottom:12px}
+.cr{display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-bottom:20px}
+@media(max-width:1024px){.cr{grid-template-columns:1fr}}
+.tc{background:var(--card);border:1px solid var(--bdr);border-radius:12px;padding:16px;transition:all .2s;cursor:pointer;height:100%}
+.tc:hover{transform:translateY(-2px);border-color:var(--blue)}
+.tn{font-weight:700;font-size:15px;color:var(--gold)}
+.tcb{background:rgba(245,158,11,.15);color:#FBBF24;padding:4px 10px;border-radius:12px;font-weight:700;font-size:14px}
+.td{font-size:12px;color:var(--mut);line-height:1.6}
+.tp{background:var(--card);border:1px solid var(--bdr);color:var(--mut);padding:6px 14px;border-radius:20px;font-size:13px;font-weight:500;cursor:pointer;transition:all .2s;white-space:nowrap}
+.tp:hover{border-color:var(--blue);color:var(--txt)}.tp.act{background:var(--blue);border-color:var(--blue);color:#fff;font-weight:600}
+.tbc{background:var(--card);border:1px solid var(--bdr);border-radius:12px;padding:20px}
+.si{background:var(--bg);border:1px solid var(--bdr);color:var(--txt);padding:8px 14px;border-radius:6px;font-size:13px;width:300px;max-width:100%}
+.si:focus{outline:none;border-color:var(--blue)}
+.tb{width:100%;border-collapse:collapse;font-size:13px}
+.tb th{background:#0F172A;color:var(--mut);font-weight:600;padding:10px 12px;position:sticky;top:0;z-index:2;border-bottom:2px solid var(--bdr)}
+.tb td{padding:8px 12px;border-bottom:1px solid var(--bdr);vertical-align:middle}
+.tb tr:hover td{background:var(--hover)}
+.ts{max-height:500px;overflow-y:auto;overflow-x:auto}
+.ba{background:rgba(239,68,68,.2);color:#FCA5A5;padding:2px 8px;border-radius:4px;font-weight:600;font-size:12px}
+.bw{background:rgba(245,158,11,.2);color:#FCD34D;padding:2px 8px;border-radius:4px;font-weight:600;font-size:12px}
+.bo{background:rgba(16,185,129,.2);color:#6EE7B7;padding:2px 8px;border-radius:4px;font-weight:600;font-size:12px}
+.be{background:rgba(59,130,246,.15);border:1px solid rgba(59,130,246,.3);color:#60A5FA;padding:4px 10px;border-radius:6px;font-size:12px;cursor:pointer;white-space:nowrap}
+.be:hover{background:var(--blue);color:#fff}
+.offcanvas{background:var(--card)!important;color:var(--txt);border-left:1px solid var(--bdr)}
+.offcanvas-header{border-bottom:1px solid var(--bdr)}
+.jhc{background:var(--bg);border:1px solid var(--bdr);border-radius:10px;padding:16px;margin-bottom:20px}
+.fsd,.ftd{background:var(--bg);border:1px solid var(--bdr);color:var(--txt);border-radius:6px;padding:8px 12px;width:100%;font-size:13px}
+.fsd:focus,.ftd:focus{outline:none;border-color:var(--blue)}
+.form-check-input{background-color:var(--bg);border-color:var(--bdr)}
+.form-check-input:checked{background-color:var(--blue);border-color:var(--blue)}
+.bsv{background:linear-gradient(135deg,var(--green),#059669);color:#fff;border:none;padding:12px;border-radius:8px;font-weight:700;width:100%;font-size:15px;cursor:pointer}
+.bsv:hover{opacity:.9}
+.bcl{background:linear-gradient(135deg,var(--red),#DC2626);color:#fff;border:none;padding:10px;border-radius:8px;font-weight:700;width:100%;font-size:14px;cursor:pointer;margin-top:10px}
+.bcl:hover{opacity:.9}
+.toast-c{position:fixed;top:20px;right:20px;padding:12px 24px;border-radius:8px;font-weight:600;z-index:9999;display:none;box-shadow:0 4px 20px rgba(0,0,0,.3)}
+.toast-ok{background:var(--green);color:#fff}.toast-er{background:var(--red);color:#fff}.toast-info{background:var(--blue);color:#fff}
+.st{font-size:17px;font-weight:700;margin-bottom:14px}
+/* Admin Modal */
+.admin-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.7);z-index:8000;display:none;justify-content:center;align-items:center}
+.admin-overlay.show{display:flex}
+.admin-box{background:var(--card);border:1px solid var(--bdr);border-radius:16px;padding:30px;width:600px;max-width:95vw;max-height:90vh;overflow-y:auto}
+.admin-box h3{font-weight:700;margin-bottom:20px}
+.admin-box label{font-weight:600;color:var(--gold);font-size:13px;margin-bottom:6px;display:block}
+.admin-box textarea{background:var(--bg);border:1px solid var(--bdr);color:var(--txt);border-radius:8px;padding:12px;width:100%;font-size:12px;font-family:monospace}
+.admin-box textarea:focus{outline:none;border-color:var(--blue)}
+.sync-status{font-size:12px;padding:6px 12px;border-radius:6px;display:inline-block}
+.sync-ok{background:rgba(16,185,129,.2);color:#6EE7B7}
+.sync-wait{background:rgba(245,158,11,.2);color:#FCD34D}
+@media print{.no-print{display:none!important}body{background:#fff;color:#000}}
+</style>
 </head>
 <body>
-<div class="toast-custom" id="toast"></div>
+<div class="toast-c toast-ok" id="toast"></div>
 
-<div class="header">
-    <div class="header-title">
-        <h1>&#128736;&#65039; Dashboard งานซ่อมค้างรอช่างรับงาน</h1>
-        <p>แผนกศูนย์เครื่องมือแพทย์ | ระบบติดตามและบริหารจัดการงานค้างสะสม</p>
-    </div>
-    <div class="d-flex gap-2 align-items-center flex-wrap no-print">
-        <span class="badge-date" id="dateLabel">&#128197; กำลังโหลด...</span>
-        <button class="btn-header" onclick="exportCSV()">&#128229; Export CSV</button>
-        <button class="btn-header" onclick="window.print()">&#128424;&#65039; พิมพ์</button>
-    </div>
+<div class="hdr">
+<div>
+<h1>&#128736;&#65039; Dashboard งานซ่อมค้างรอช่างรับงาน</h1>
+<p>แผนกศูนย์เครื่องมือแพทย์ | ระบบติดตามและบริหารจัดการงานค้างสะสม</p>
+</div>
+<div class="d-flex gap-2 align-items-center flex-wrap no-print">
+<span class="badge-dt" id="dateLabel">&#128197; กำลังโหลด...</span>
+<button class="btn-h" onclick="exportCSV()">&#128229; CSV</button>
+<button class="btn-h" onclick="window.print()">&#128424;&#65039; พิมพ์</button>
+<button class="btn-admin" onclick="showAdminLogin()" title="Admin Panel"><i class="bi bi-gear"></i> Admin</button>
+</div>
 </div>
 
 <div class="row g-3 mb-4">
-    <div class="col-xl-3 col-md-6"><div class="metric-card">
-        <div class="metric-label">&#128230; งานซ่อมค้างรวมทั้งหมด</div>
-        <div class="metric-value" id="mTotal">-</div>
-        <div class="metric-sub">จำนวนงานแจ้งซ่อมที่ยังไม่ปิด</div>
-    </div></div>
-    <div class="col-xl-3 col-md-6"><div class="metric-card gold">
-        <div class="metric-label">&#128119; ช่างผู้รับผิดชอบติดตาม</div>
-        <div class="metric-value">5 <span style="font-size:16px;font-weight:400">ท่าน</span></div>
-        <div class="metric-sub">แบ่งตามกลุ่มงานหน่วยงาน</div>
-    </div></div>
-    <div class="col-xl-3 col-md-6"><div class="metric-card red">
-        <div class="metric-label">&#128680; งานค้างเกิน 90 วัน</div>
-        <div class="metric-value" id="mOver90">-</div>
-        <div class="metric-sub" id="mOver365Sub">-</div>
-    </div></div>
-    <div class="col-xl-3 col-md-6"><div class="metric-card green">
-        <div class="metric-label">&#9200; ระยะเวลาค้างเฉลี่ย</div>
-        <div class="metric-value" id="mAvgDays">-</div>
-        <div class="metric-sub">คำนวณจากวันแจ้งซ่อมถึงปัจจุบัน</div>
-    </div></div>
+<div class="col-xl-3 col-md-6"><div class="mc"><div class="ml">&#128230; งานซ่อมค้างรวมทั้งหมด</div><div class="mv" id="mTotal">-</div><div class="ms">จำนวนงานที่ยังไม่ปิด</div></div></div>
+<div class="col-xl-3 col-md-6"><div class="mc gd"><div class="ml">&#128119; ช่างผู้รับผิดชอบ</div><div class="mv">5 <span style="font-size:16px;font-weight:400">ท่าน</span></div><div class="ms">แบ่งตามกลุ่มงาน</div></div></div>
+<div class="col-xl-3 col-md-6"><div class="mc rd"><div class="ml">&#128680; งานค้างเกิน 90 วัน</div><div class="mv" id="mO90">-</div><div class="ms" id="mO365">-</div></div></div>
+<div class="col-xl-3 col-md-6"><div class="mc gn"><div class="ml">&#9200; ค้างเฉลี่ย</div><div class="mv" id="mAvg">-</div><div class="ms">คำนวณจากวันแจ้งซ่อม</div></div></div>
 </div>
 
-<div class="charts-row">
-    <div class="chart-card">
-        <div class="chart-title">&#128202; สัดส่วนงานค้างรายช่าง</div>
-        <div style="height:280px"><canvas id="techDonutChart"></canvas></div>
-    </div>
-    <div class="chart-card">
-        <div class="chart-title">&#128197; การกระจายตามจำนวนวันค้าง</div>
-        <div style="height:280px"><canvas id="daysDistChart"></canvas></div>
-    </div>
+<div class="cr">
+<div class="cc"><div class="ct">&#128202; สัดส่วนงานค้างรายช่าง</div><div style="height:280px"><canvas id="cDonut"></canvas></div></div>
+<div class="cc"><div class="ct">&#128197; กระจายตามวันค้าง</div><div style="height:280px"><canvas id="cDays"></canvas></div></div>
+</div>
+<div class="cr">
+<div class="cc"><div class="ct">&#127973; Top 10 หน่วยงาน</div><div style="height:280px"><canvas id="cDept"></canvas></div></div>
+<div class="cc"><div class="ct">&#128295; สถานะวิธีซ่อม</div><div style="height:280px"><canvas id="cMethod"></canvas></div></div>
 </div>
 
-<div class="charts-row">
-    <div class="chart-card">
-        <div class="chart-title">&#127973; Top 10 หน่วยงานที่มีงานค้างมากที่สุด</div>
-        <div style="height:280px"><canvas id="deptBarChart"></canvas></div>
-    </div>
-    <div class="chart-card">
-        <div class="chart-title">&#128295; สถานะวิธีการซ่อม</div>
-        <div style="height:280px"><canvas id="methodChart"></canvas></div>
-    </div>
-</div>
-
-<div class="section-title">&#128119; สรุปการมอบหมายงานค้างรายช่าง</div>
+<div class="st">&#128119; สรุปรายช่าง</div>
 <div class="row g-3 mb-4" id="techCards"></div>
 
-<div class="d-flex align-items-center gap-2 mb-3 flex-wrap no-print" id="filterBar">
-    <span class="fw-bold text-muted me-2"><i class="bi bi-funnel-fill text-warning"></i> กรองดูรายช่าง:</span>
-    <button class="tech-pill active" data-tech="ALL" onclick="filterTech('ALL')">ทั้งหมด</button>
+<div class="d-flex align-items-center gap-2 mb-3 flex-wrap no-print" id="fBar">
+<span class="fw-bold text-muted me-2"><i class="bi bi-funnel-fill text-warning"></i> กรอง:</span>
+<button class="tp act" data-t="ALL" onclick="flt('ALL')">ทั้งหมด</button>
 </div>
 
-<div class="table-card mb-4">
-    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-        <h6 class="m-0 fw-bold text-warning"><i class="bi bi-list-task me-1"></i> รายการงานค้างซ่อมรอช่างรับงาน <span id="tableCount" class="text-info"></span></h6>
-        <input type="text" class="search-input no-print" id="searchBox" placeholder="&#128269; ค้นหา JOB ID / หน่วยงาน / รายละเอียด..." oninput="renderTable()">
-    </div>
-    <div class="table-scroll">
-        <table class="tbl">
-            <thead><tr>
-                <th style="width:50px" class="text-center">ลำดับ</th>
-                <th style="width:90px" class="text-center">เลข JOB</th>
-                <th style="width:90px" class="text-center">วันค้าง</th>
-                <th style="width:200px">หน่วยงาน</th>
-                <th>รายละเอียด</th>
-                <th style="width:150px" class="text-center">ช่างผู้รับผิดชอบ</th>
-                <th style="width:160px" class="text-center">สถานะ/วิธีซ่อม</th>
-                <th style="width:80px" class="text-center no-print">จัดการ</th>
-            </tr></thead>
-            <tbody id="tableBody"><tr><td colspan="8" class="text-center py-5">กำลังโหลดข้อมูล...</td></tr></tbody>
-        </table>
-    </div>
+<div class="tbc mb-4">
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+<h6 class="m-0 fw-bold text-warning"><i class="bi bi-list-task me-1"></i> รายการงานค้าง <span id="tCnt" class="text-info"></span> <span class="sync-status sync-ok" id="syncBadge"><i class="bi bi-cloud-check me-1"></i>Synced</span></h6>
+<input type="text" class="si no-print" id="sBox" placeholder="&#128269; ค้นหา..." oninput="renderTbl()">
+</div>
+<div class="ts">
+<table class="tb"><thead><tr>
+<th style="width:50px" class="text-center">ลำดับ</th>
+<th style="width:90px" class="text-center">JOB</th>
+<th style="width:80px" class="text-center">วันค้าง</th>
+<th style="width:200px">หน่วยงาน</th>
+<th>รายละเอียด</th>
+<th style="width:140px" class="text-center">ช่าง</th>
+<th style="width:150px" class="text-center">วิธีซ่อม</th>
+<th style="width:80px" class="text-center no-print">จัดการ</th>
+</tr></thead>
+<tbody id="tBody"><tr><td colspan="8" class="text-center py-5">กำลังโหลด...</td></tr></tbody>
+</table></div></div>
+
+<!-- Offcanvas -->
+<div class="offcanvas offcanvas-end" tabindex="-1" id="uPanel" style="width:400px">
+<div class="offcanvas-header">
+<h5 class="offcanvas-title"><i class="bi bi-rocket-takeoff text-warning me-2"></i>อัปเดตงานซ่อม</h5>
+<button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button>
+</div>
+<div class="offcanvas-body">
+<div class="jhc">
+<div class="d-flex justify-content-between align-items-start mb-2">
+<h3 class="fw-bold text-warning mb-0" id="pJob">JOB ---</h3>
+<span class="badge bg-danger" id="pDays">0 วัน</span>
+</div>
+<div class="text-light small mb-1"><i class="bi bi-geo-alt-fill text-danger me-1"></i><span id="pWard">-</span></div>
+<div class="text-muted small"><i class="bi bi-tools text-info me-1"></i><span id="pDesc">-</span></div>
+</div>
+<div class="mb-3">
+<label class="form-label fw-bold text-warning small"><i class="bi bi-person-check-fill me-1"></i>1. ช่างผู้รับผิดชอบ</label>
+<select id="sT" class="fsd">
+<option value="นายสุรศักดิ์ พึ่งเล่ห์">นายสุรศักดิ์ พึ่งเล่ห์</option>
+<option value="นายศุภชัย วิภาหะ">นายศุภชัย วิภาหะ</option>
+<option value="นายยุทธนา หยุมปัญญา">นายยุทธนา หยุมปัญญา</option>
+<option value="นายถิรวุฒิ บุญเรือง">นายถิรวุฒิ บุญเรือง</option>
+<option value="นายพุฒิพงศ์ จันมงคล">นายพุฒิพงศ์ จันมงคล</option>
+</select></div>
+<div class="mb-3">
+<label class="form-label fw-bold text-warning small"><i class="bi bi-wrench-adjustable me-1"></i>2. วิธีการซ่อม</label>
+<select id="sM" class="fsd">
+<option value="--เลือกวิธีซ่อม--">--เลือกวิธีซ่อม--</option>
+<option value="A1-ซ่อมเองไม่ใช้อะไหล่">A1-ซ่อมเองไม่ใช้อะไหล่</option>
+<option value="A2-ซ่อมเองใช้อะไหล่">A2-ซ่อมเองใช้อะไหล่</option>
+<option value="B1-จ้างซ่อมภายนอก">B1-จ้างซ่อมภายนอก</option>
+<option value="C1-ส่งคืน/แทงจำหน่าย">C1-ส่งคืน/แทงจำหน่าย</option>
+</select></div>
+<div class="mb-3">
+<label class="form-label fw-bold text-warning small"><i class="bi bi-check2-square me-1"></i>3. เอกสาร</label>
+<div class="form-check mb-2"><input class="form-check-input" type="checkbox" id="cPO"><label class="form-check-label small text-light" for="cPO">ออก PO แล้ว</label></div>
+<div class="form-check mb-2"><input class="form-check-input" type="checkbox" id="cPas"><label class="form-check-label small text-light" for="cPas">พัสดุรับเรื่องแล้ว</label></div>
+</div>
+<div class="mb-3">
+<label class="form-label fw-bold text-warning small"><i class="bi bi-chat-left-text me-1"></i>4. หมายเหตุ</label>
+<textarea id="tNote" class="ftd" rows="3" placeholder="บันทึกหมายเหตุ..."></textarea>
+</div>
+<button class="bsv" onclick="saveUpd()"><i class="bi bi-check-circle me-2"></i>บันทึกอัปเดต</button>
+<button class="bcl" onclick="closeJob()"><i class="bi bi-x-circle me-2"></i>ปิดงาน (ซ่อมเสร็จแล้ว)</button>
+<p class="text-muted small mt-2 text-center">* ปิดงาน = งานจะหายจาก Dashboard</p>
+</div></div>
+
+<!-- Admin Overlay -->
+<div class="admin-overlay" id="adminOverlay">
+<div class="admin-box" id="adminBox">
+<!-- Login -->
+<div id="adminLogin">
+<h3><i class="bi bi-shield-lock text-warning me-2"></i>Admin Login</h3>
+<div class="mb-3">
+<label>รหัสผ่าน Admin</label>
+<input type="password" class="fsd" id="adminPw" placeholder="ใส่รหัสผ่าน..." onkeydown="if(event.key==='Enter')adminAuth()">
+</div>
+<div class="d-flex gap-2">
+<button class="bsv" style="width:auto;padding:10px 24px" onclick="adminAuth()">เข้าสู่ระบบ</button>
+<button class="btn-admin" onclick="hideAdmin()">ยกเลิก</button>
+</div>
+</div>
+<!-- Admin Panel -->
+<div id="adminPanel" style="display:none">
+<h3><i class="bi bi-gear-fill text-warning me-2"></i>Admin Panel</h3>
+
+<div class="mb-3">
+<label><i class="bi bi-key me-1"></i>GitHub Token (PAT)</label>
+<input type="password" class="fsd" id="ghToken" placeholder="ghp_xxxx...">
+<small class="text-muted">จำเป็นสำหรับ sync ข้อมูล — เก็บเฉพาะเครื่องนี้</small>
 </div>
 
-<div class="offcanvas offcanvas-end" tabindex="-1" id="updatePanel" style="width:400px">
-    <div class="offcanvas-header">
-        <h5 class="offcanvas-title"><i class="bi bi-rocket-takeoff text-warning me-2"></i> อัปเดตงานซ่อม</h5>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button>
-    </div>
-    <div class="offcanvas-body">
-        <div class="job-header-card">
-            <div class="d-flex justify-content-between align-items-start mb-2">
-                <h3 class="fw-bold text-warning mb-0" id="panelJob">JOB ---</h3>
-                <span class="badge bg-danger" id="panelDays">0 วัน</span>
-            </div>
-            <div class="text-light small mb-1"><i class="bi bi-geo-alt-fill text-danger me-1"></i> <span id="panelWard">-</span></div>
-            <div class="text-muted small"><i class="bi bi-tools text-info me-1"></i> <span id="panelDesc">-</span></div>
-        </div>
-        <div class="mb-4">
-            <label class="form-label fw-bold text-warning small"><i class="bi bi-person-check-fill me-1"></i> 1. มอบหมาย / เปลี่ยนช่างผู้รับผิดชอบ</label>
-            <select id="selTech" class="form-select-dark">
-                <option value="นายสุรศักดิ์ พึ่งเล่ห์">นายสุรศักดิ์ พึ่งเล่ห์</option>
-                <option value="นายศุภชัย วิภาหะ">นายศุภชัย วิภาหะ</option>
-                <option value="นายยุทธนา หยุมปัญญา">นายยุทธนา หยุมปัญญา</option>
-                <option value="นายถิรวุฒิ บุญเรือง">นายถิรวุฒิ บุญเรือง</option>
-                <option value="นายพุฒิพงศ์ จันมงคล">นายพุฒิพงศ์ จันมงคล</option>
-            </select>
-        </div>
-        <div class="mb-4">
-            <label class="form-label fw-bold text-warning small"><i class="bi bi-wrench-adjustable me-1"></i> 2. *ระบุวิธีการซ่อม (บังคับ)</label>
-            <select id="selMethod" class="form-select-dark">
-                <option value="--เลือกวิธีซ่อม--">--เลือกวิธีซ่อม--</option>
-                <option value="A1-ซ่อมเองไม่ใช้อะไหล่">A1-ซ่อมเองไม่ใช้อะไหล่</option>
-                <option value="A2-ซ่อมเองใช้อะไหล่">A2-ซ่อมเองใช้อะไหล่</option>
-                <option value="B1-จ้างซ่อมภายนอก">B1-จ้างซ่อมภายนอก</option>
-                <option value="C1-ส่งคืน/แทงจำหน่าย">C1-ส่งคืน/แทงจำหน่าย</option>
-            </select>
-        </div>
-        <div class="mb-4">
-            <label class="form-label fw-bold text-warning small"><i class="bi bi-check2-square me-1"></i> 3. ขั้นตอนเอกสาร</label>
-            <div class="form-check mb-2">
-                <input class="form-check-input" type="checkbox" id="chkPO">
-                <label class="form-check-label small text-light" for="chkPO">ออก PO แล้ว</label>
-            </div>
-            <div class="form-check mb-2">
-                <input class="form-check-input" type="checkbox" id="chkPasdu">
-                <label class="form-check-label small text-light" for="chkPasdu">พัสดุรับเรื่องแล้ว</label>
-            </div>
-        </div>
-        <div class="mb-4">
-            <label class="form-label fw-bold text-warning small"><i class="bi bi-chat-left-text me-1"></i> 4. หมายเหตุ</label>
-            <textarea id="txtNote" class="form-textarea-dark" rows="3" placeholder="บันทึกหมายเหตุเพิ่มเติม..."></textarea>
-        </div>
-        <button class="btn-save" onclick="saveUpdate()"><i class="bi bi-check-circle me-2"></i>บันทึกการอัปเดต</button>
-    </div>
+<div class="mb-3">
+<label><i class="bi bi-cloud-arrow-up me-1"></i>อัพโหลดข้อมูลใหม่ (วางจาก Excel)</label>
+<textarea id="pasteData" rows="8" placeholder="Copy ข้อมูลจาก Excel แล้ววางที่นี่&#10;&#10;รูปแบบ (Tab-separated):&#10;JOB_ID&#9;หน่วยงาน&#9;รายละเอียด&#9;วันแจ้งซ่อม&#9;วันค้าง&#9;ช่างผู้รับผิดชอบ"></textarea>
 </div>
+
+<div class="d-flex gap-2 flex-wrap mb-3">
+<button class="bsv" style="width:auto;padding:10px 20px" onclick="adminUpload()"><i class="bi bi-cloud-arrow-up me-1"></i>อัพโหลด + Sync GitHub</button>
+<button class="btn-h" style="background:var(--purple)" onclick="syncToGitHub()"><i class="bi bi-arrow-repeat me-1"></i>Sync สถานะ → GitHub</button>
+<button class="btn-admin" onclick="hideAdmin()"><i class="bi bi-x-lg me-1"></i>ปิด</button>
+</div>
+
+<div id="adminLog" class="small text-muted" style="max-height:150px;overflow-y:auto;background:var(--bg);border-radius:8px;padding:10px;font-family:monospace;font-size:11px"></div>
+</div>
+</div></div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-let allJobs=[], currentFilter='ALL', currentEditJobId=null;
-const TECHS=['นายสุรศักดิ์ พึ่งเล่ห์','นายศุภชัย วิภาหะ','นายยุทธนา หยุมปัญญา','นายถิรวุฒิ บุญเรือง','นายพุฒิพงศ์ จันมงคล'];
-const TECH_COLORS=['#3B82F6','#8B5CF6','#10B981','#EF4444','#F59E0B'];
+const REPO='BioSyn-sys/bme-dashboard',TECHS=['นายสุรศักดิ์ พึ่งเล่ห์','นายศุภชัย วิภาหะ','นายยุทธนา หยุมปัญญา','นายถิรวุฒิ บุญเรือง','นายพุฒิพงศ์ จันมงคล'],TC=['#3B82F6','#8B5CF6','#10B981','#EF4444','#F59E0B'];
+let allJobs=[],curFlt='ALL',curEdit=null,CI={},statusData={},closedJobs=[];
+const ADMIN_PW='bme2569';
 
+// === Toast ===
+function showToast(msg,type='ok'){const t=document.getElementById('toast');t.className='toast-c toast-'+type;t.textContent=msg;t.style.display='block';setTimeout(()=>t.style.display='none',3000)}
+
+// === GitHub API ===
+function ghToken(){return localStorage.getItem('gh_pat')||''}
+async function ghGet(file){
+    const h={Accept:'application/vnd.github.v3+json'};const tk=ghToken();if(tk)h.Authorization='token '+tk;
+    const r=await fetch('https://api.github.com/repos/'+REPO+'/contents/'+file,{headers:h});
+    if(r.status===404)return null;if(!r.ok)throw new Error('GitHub GET error: '+r.status);return r.json();
+}
+async function ghPut(file,content,msg){
+    const tk=ghToken();if(!tk)throw new Error('ไม่มี GitHub Token');
+    const h={Authorization:'token '+tk,Accept:'application/vnd.github.v3+json'};
+    let sha=null;try{const ex=await ghGet(file);if(ex)sha=ex.sha;}catch(e){}
+    const body={message:msg,content:btoa(unescape(encodeURIComponent(content))),branch:'main'};
+    if(sha)body.sha=sha;
+    const r=await fetch('https://api.github.com/repos/'+REPO+'/contents/'+file,{method:'PUT',headers:h,body:JSON.stringify(body)});
+    if(!r.ok){const e=await r.json();throw new Error(e.message||'PUT failed');}
+    return r.json();
+}
+
+// === Load Data ===
 async function loadData(){
     try{
-        const r=await fetch('data.json'); const data=await r.json();
-        document.getElementById('dateLabel').textContent='\u{1F4C5} ข้อมูล ณ วันที่ '+data.updateDate;
+        // Load base data
+        const r=await fetch('data.json');const data=await r.json();
+        document.getElementById('dateLabel').textContent='\u{1F4C5} ข้อมูล ณ '+data.updateDate;
         allJobs=data.jobs||[];
-        allJobs.forEach(j=>{const s=localStorage.getItem('bme_'+j.jobId);if(s){const u=JSON.parse(s);if(u.tech)j['\u0e0a\u0e48\u0e32\u0e07\u0e1c\u0e39\u0e49\u0e23\u0e31\u0e1a\u0e1c\u0e34\u0e14\u0e0a\u0e2d\u0e1a']=u.tech;if(u.method){j['\u0e27\u0e34\u0e18\u0e35\u0e0b\u0e48\u0e2d\u0e21']=u.method;j['\u0e2a\u0e16\u0e32\u0e19\u0e30']=getStatus(u.method);}}});
-        allJobs.sort((a,b)=>(b['\u0e08\u0e33\u0e19\u0e27\u0e19\u0e27\u0e31\u0e19\u0e04\u0e49\u0e32\u0e07']||0)-(a['\u0e08\u0e33\u0e19\u0e27\u0e19\u0e27\u0e31\u0e19\u0e04\u0e49\u0e32\u0e07']||0));
-        updateMetrics(); buildCharts(); buildTechCards(); buildFilterBar(); renderTable();
-    }catch(e){document.getElementById('tableBody').innerHTML='<tr><td colspan="8" class="text-center py-5 text-danger">โหลดข้อมูลไม่สำเร็จ: '+e.message+'</td></tr>';}
+
+        // Load status from GitHub (if available) or localStorage fallback
+        try{
+            const sf=await ghGet('status.json');
+            if(sf){statusData=JSON.parse(atob(sf.content));closedJobs=statusData._closed||[];}
+            else{loadLocalStatus();}
+        }catch(e){loadLocalStatus();}
+
+        // Apply status overrides
+        allJobs.forEach(j=>{
+            const u=statusData[j.jobId];
+            if(u){
+                if(u.tech)j['ช่างผู้รับผิดชอบ']=u.tech;
+                if(u.method&&u.method!=='--เลือกวิธีซ่อม--'){j['วิธีซ่อม']=u.method;}
+            }
+        });
+
+        // Filter out closed jobs
+        allJobs=allJobs.filter(j=>!closedJobs.includes(j.jobId));
+        allJobs.sort((a,b)=>(b['จำนวนวันค้าง']||0)-(a['จำนวนวันค้าง']||0));
+
+        updateMetrics();buildCharts();buildTechCards();buildFilter();renderTbl();
+        document.getElementById('syncBadge').innerHTML='<i class="bi bi-cloud-check me-1"></i>Synced';
+        document.getElementById('syncBadge').className='sync-status sync-ok';
+    }catch(e){
+        document.getElementById('tBody').innerHTML='<tr><td colspan="8" class="text-center py-5 text-danger">โหลดไม่สำเร็จ: '+e.message+'</td></tr>';
+    }
 }
 
-function getStatus(m){
-    if(!m||m==='--เลือกวิธีซ่อม--')return'รอมอบหมาย';
-    if(m.startsWith('A1'))return'ซ่อมเอง(ไม่ใช้อะไหล่)';if(m.startsWith('A2'))return'ซ่อมเอง(ใช้อะไหล่)';
-    if(m.startsWith('B1'))return'จ้างซ่อมภายนอก';if(m.startsWith('C1'))return'ส่งคืน/แทงจำหน่าย';return m;
+function loadLocalStatus(){
+    // Fallback: load from localStorage
+    const s=localStorage.getItem('bme_status');
+    if(s){statusData=JSON.parse(s);closedJobs=statusData._closed||[];}
+    const c=localStorage.getItem('bme_closed');
+    if(c)closedJobs=JSON.parse(c);
 }
 
+function saveLocalStatus(){
+    statusData._closed=closedJobs;
+    localStorage.setItem('bme_status',JSON.stringify(statusData));
+    localStorage.setItem('bme_closed',JSON.stringify(closedJobs));
+    document.getElementById('syncBadge').innerHTML='<i class="bi bi-cloud-arrow-up me-1"></i>มีข้อมูลรอ sync';
+    document.getElementById('syncBadge').className='sync-status sync-wait';
+}
+
+// === Metrics ===
 function updateMetrics(){
-    const t=allJobs.length,o90=allJobs.filter(j=>j['จำนวนวันค้าง']>=90).length,o365=allJobs.filter(j=>j['จำนวนวันค้าง']>=365).length;
+    const t=allJobs.length,o9=allJobs.filter(j=>j['จำนวนวันค้าง']>=90).length,o3=allJobs.filter(j=>j['จำนวนวันค้าง']>=365).length;
     const avg=t>0?Math.round(allJobs.reduce((s,j)=>s+(j['จำนวนวันค้าง']||0),0)/t):0;
     document.getElementById('mTotal').innerHTML=t+' <span style="font-size:16px;font-weight:400">รายการ</span>';
-    document.getElementById('mOver90').innerHTML=o90+' <span style="font-size:16px;font-weight:400">รายการ</span>';
-    document.getElementById('mOver365Sub').innerHTML=o365>0?'<span class="badge-alert">'+o365+' รายการ</span> ค้างเกิน 1 ปี':'ไม่มีงานค้างเกิน 1 ปี';
-    document.getElementById('mAvgDays').innerHTML=avg+' <span style="font-size:16px;font-weight:400">วัน</span>';
+    document.getElementById('mO90').innerHTML=o9+' <span style="font-size:16px;font-weight:400">รายการ</span>';
+    document.getElementById('mO365').innerHTML=o3>0?'<span class="ba">'+o3+'</span> ค้างเกิน 1 ปี':'ไม่มีค้างเกิน 1 ปี';
+    document.getElementById('mAvg').innerHTML=avg+' <span style="font-size:16px;font-weight:400">วัน</span>';
 }
 
-let CI={};
+// === Charts ===
 function buildCharts(){
     const tc={};TECHS.forEach(t=>tc[t]=0);allJobs.forEach(j=>{if(tc[j['ช่างผู้รับผิดชอบ']]!==undefined)tc[j['ช่างผู้รับผิดชอบ']]++;});
     if(CI.d)CI.d.destroy();
-    CI.d=new Chart(document.getElementById('techDonutChart'),{type:'doughnut',data:{labels:TECHS.map(t=>t.replace('นาย','')),datasets:[{data:TECHS.map(t=>tc[t]),backgroundColor:TECH_COLORS,borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{color:'#94A3B8',font:{family:'Sarabun',size:12}}}}}});
+    CI.d=new Chart(document.getElementById('cDonut'),{type:'doughnut',data:{labels:TECHS.map(t=>t.replace('นาย','')),datasets:[{data:TECHS.map(t=>tc[t]),backgroundColor:TC,borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{color:'#94A3B8',font:{family:'Sarabun',size:12}}}}}});
 
-    const db={'0-7 วัน':0,'8-30 วัน':0,'31-60 วัน':0,'61-90 วัน':0,'91-180 วัน':0,'180+ วัน':0};
-    allJobs.forEach(j=>{const d=j['จำนวนวันค้าง']||0;if(d<=7)db['0-7 วัน']++;else if(d<=30)db['8-30 วัน']++;else if(d<=60)db['31-60 วัน']++;else if(d<=90)db['61-90 วัน']++;else if(d<=180)db['91-180 วัน']++;else db['180+ วัน']++;});
+    const db={'0-7':0,'8-30':0,'31-60':0,'61-90':0,'91-180':0,'180+':0};
+    allJobs.forEach(j=>{const d=j['จำนวนวันค้าง']||0;if(d<=7)db['0-7']++;else if(d<=30)db['8-30']++;else if(d<=60)db['31-60']++;else if(d<=90)db['61-90']++;else if(d<=180)db['91-180']++;else db['180+']++;});
     if(CI.dd)CI.dd.destroy();
-    CI.dd=new Chart(document.getElementById('daysDistChart'),{type:'bar',data:{labels:Object.keys(db),datasets:[{data:Object.values(db),backgroundColor:['#10B981','#3B82F6','#F59E0B','#F97316','#EF4444','#DC2626'],borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#94A3B8'},grid:{color:'rgba(51,65,85,0.5)'}},y:{ticks:{color:'#94A3B8',font:{family:'Sarabun'}},grid:{display:false}}}}});
+    CI.dd=new Chart(document.getElementById('cDays'),{type:'bar',data:{labels:Object.keys(db).map(k=>k+' วัน'),datasets:[{data:Object.values(db),backgroundColor:['#10B981','#3B82F6','#F59E0B','#F97316','#EF4444','#DC2626'],borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#94A3B8'},grid:{color:'rgba(51,65,85,0.5)'}},y:{ticks:{color:'#94A3B8'},grid:{display:false}}}}});
 
-    const dc={};allJobs.forEach(j=>{const d=j['หน่วยงาน']||'ไม่ระบุ';dc[d]=(dc[d]||0)+1;});
+    const dc={};allJobs.forEach(j=>{const d=j['หน่วยงาน']||'-';dc[d]=(dc[d]||0)+1;});
     const td=Object.entries(dc).sort((a,b)=>b[1]-a[1]).slice(0,10);
     if(CI.dp)CI.dp.destroy();
-    CI.dp=new Chart(document.getElementById('deptBarChart'),{type:'bar',data:{labels:td.map(d=>d[0].length>25?d[0].substring(0,25)+'...':d[0]),datasets:[{data:td.map(d=>d[1]),backgroundColor:'#3B82F6',borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#94A3B8'},grid:{color:'rgba(51,65,85,0.5)'}},y:{ticks:{color:'#94A3B8',font:{family:'Sarabun',size:11}},grid:{display:false}}}}});
+    CI.dp=new Chart(document.getElementById('cDept'),{type:'bar',data:{labels:td.map(d=>d[0].length>25?d[0].substring(0,25)+'...':d[0]),datasets:[{data:td.map(d=>d[1]),backgroundColor:'#3B82F6',borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#94A3B8'},grid:{color:'rgba(51,65,85,0.5)'}},y:{ticks:{color:'#94A3B8',font:{family:'Sarabun',size:11}},grid:{display:false}}}}});
 
-    const mc={};allJobs.forEach(j=>{const m=j['วิธีซ่อม']||'--เลือกวิธีซ่อม--';let l='รอเลือกวิธีซ่อม';if(m.startsWith('A1'))l='A1-ซ่อมเอง(ไม่ใช้อะไหล่)';else if(m.startsWith('A2'))l='A2-ซ่อมเอง(ใช้อะไหล่)';else if(m.startsWith('B1'))l='B1-จ้างซ่อมภายนอก';else if(m.startsWith('C1'))l='C1-ส่งคืน/จำหน่าย';mc[l]=(mc[l]||0)+1;});
+    const mc={};allJobs.forEach(j=>{const m=j['วิธีซ่อม']||'';let l='รอเลือก';if(m.startsWith('A1'))l='A1';else if(m.startsWith('A2'))l='A2';else if(m.startsWith('B1'))l='B1';else if(m.startsWith('C1'))l='C1';mc[l]=(mc[l]||0)+1;});
     if(CI.m)CI.m.destroy();
-    CI.m=new Chart(document.getElementById('methodChart'),{type:'doughnut',data:{labels:Object.keys(mc),datasets:[{data:Object.values(mc),backgroundColor:['#64748B','#3B82F6','#8B5CF6','#F59E0B','#EF4444'],borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{color:'#94A3B8',font:{family:'Sarabun',size:11}}}}}});
+    CI.m=new Chart(document.getElementById('cMethod'),{type:'doughnut',data:{labels:Object.keys(mc),datasets:[{data:Object.values(mc),backgroundColor:['#64748B','#3B82F6','#8B5CF6','#F59E0B','#EF4444'],borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{color:'#94A3B8',font:{family:'Sarabun',size:11}}}}}});
 }
 
+// === Tech Cards ===
 function buildTechCards(){
     const c=document.getElementById('techCards');c.innerHTML='';
-    TECHS.forEach(tech=>{
-        const jobs=allJobs.filter(j=>j['ช่างผู้รับผิดชอบ']===tech),cnt=jobs.length;
-        const dm={};jobs.forEach(j=>{const d=j['หน่วยงาน']||'';dm[d]=(dm[d]||0)+1;});
-        const top3=Object.entries(dm).sort((a,b)=>b[1]-a[1]).slice(0,3).map(d=>d[0]);
-        const col=document.createElement('div');col.className='col-xl col-md-6 col-sm-6';
-        col.innerHTML='<div class="tech-card" onclick="filterTech(\''+tech+'\')"><div class="d-flex justify-content-between align-items-center mb-2"><span class="tech-name">'+tech.replace('นาย','')+'</span><span class="tech-count-badge">'+cnt+' งาน</span></div><div class="tech-depts"><strong>หน่วยงานหลัก:</strong> '+(top3.join(', ')||'-')+'</div></div>';
+    TECHS.forEach(t=>{
+        const js=allJobs.filter(j=>j['ช่างผู้รับผิดชอบ']===t),n=js.length;
+        const dm={};js.forEach(j=>{const d=j['หน่วยงาน']||'';dm[d]=(dm[d]||0)+1;});
+        const tp=Object.entries(dm).sort((a,b)=>b[1]-a[1]).slice(0,3).map(d=>d[0]);
+        const col=document.createElement('div');col.className='col-xl col-md-6';
+        col.innerHTML='<div class="tc" onclick="flt(\''+t+'\')"><div class="d-flex justify-content-between align-items-center mb-2"><span class="tn">'+t.replace('นาย','')+'</span><span class="tcb">'+n+' งาน</span></div><div class="td"><strong>หลัก:</strong> '+(tp.join(', ')||'-')+'</div></div>';
         c.appendChild(col);
     });
 }
 
-function buildFilterBar(){
-    const bar=document.getElementById('filterBar');
-    const existing=bar.querySelectorAll('.tech-pill:not([data-tech="ALL"])');existing.forEach(e=>e.remove());
-    TECHS.forEach(tech=>{const b=document.createElement('button');b.className='tech-pill';b.dataset.tech=tech;b.textContent=tech.replace('นาย','');b.onclick=()=>filterTech(tech);bar.appendChild(b);});
+// === Filter ===
+function buildFilter(){
+    const bar=document.getElementById('fBar');
+    bar.querySelectorAll('.tp:not([data-t="ALL"])').forEach(e=>e.remove());
+    TECHS.forEach(t=>{const b=document.createElement('button');b.className='tp';b.dataset.t=t;b.textContent=t.replace('นาย','');b.onclick=()=>flt(t);bar.appendChild(b);});
 }
+function flt(t){curFlt=t;document.querySelectorAll('.tp').forEach(b=>b.classList.toggle('act',b.dataset.t===t));renderTbl();}
 
-function filterTech(tech){
-    currentFilter=tech;
-    document.querySelectorAll('.tech-pill').forEach(b=>b.classList.toggle('active',b.dataset.tech===tech));
-    renderTable();
-}
-
-function renderTable(){
-    const search=(document.getElementById('searchBox').value||'').toLowerCase();
+// === Table ===
+function renderTbl(){
+    const s=(document.getElementById('sBox').value||'').toLowerCase();
     let f=allJobs;
-    if(currentFilter!=='ALL')f=f.filter(j=>j['ช่างผู้รับผิดชอบ']===currentFilter);
-    if(search)f=f.filter(j=>(j.jobId||'').toLowerCase().includes(search)||(j['หน่วยงาน']||'').toLowerCase().includes(search)||(j['รายละเอียด']||'').toLowerCase().includes(search)||(j['ช่างผู้รับผิดชอบ']||'').toLowerCase().includes(search));
-    document.getElementById('tableCount').textContent='('+f.length+' รายการ)';
-    const tbody=document.getElementById('tableBody');
-    if(f.length===0){tbody.innerHTML='<tr><td colspan="8" class="text-center py-4 text-muted">ไม่พบข้อมูล</td></tr>';return;}
+    if(curFlt!=='ALL')f=f.filter(j=>j['ช่างผู้รับผิดชอบ']===curFlt);
+    if(s)f=f.filter(j=>(j.jobId||'').toLowerCase().includes(s)||(j['หน่วยงาน']||'').toLowerCase().includes(s)||(j['รายละเอียด']||'').toLowerCase().includes(s)||(j['ช่างผู้รับผิดชอบ']||'').toLowerCase().includes(s));
+    document.getElementById('tCnt').textContent='('+f.length+')';
+    const tb=document.getElementById('tBody');
+    if(!f.length){tb.innerHTML='<tr><td colspan="8" class="text-center py-4 text-muted">ไม่พบข้อมูล</td></tr>';return;}
     let h='';
     f.forEach((j,i)=>{
         const d=j['จำนวนวันค้าง']||0;
-        let db;if(d>=90)db='<span class="badge-alert">'+d+' วัน</span>';else if(d>=30)db='<span class="badge-warn">'+d+' วัน</span>';else db='<span class="badge-ok">'+d+' วัน</span>';
+        let db;if(d>=90)db='<span class="ba">'+d+'</span>';else if(d>=30)db='<span class="bw">'+d+'</span>';else db='<span class="bo">'+d+'</span>';
         const m=j['วิธีซ่อม']||'--เลือกวิธีซ่อม--';
         const md=m==='--เลือกวิธีซ่อม--'?'<span class="text-muted">รอเลือก</span>':'<span class="text-info">'+m+'</span>';
-        h+='<tr><td class="text-center">'+(i+1)+'</td><td class="text-center fw-bold">'+j.jobId+'</td><td class="text-center">'+db+'</td><td>'+(j['หน่วยงาน']||'-')+'</td><td>'+(j['รายละเอียด']||'-')+'</td><td class="text-center" style="color:var(--accent-gold);font-weight:600">'+(j['ช่างผู้รับผิดชอบ']||'').replace('นาย','')+'</td><td class="text-center">'+md+'</td><td class="text-center no-print"><button class="btn-edit" onclick="openPanel(\''+j.jobId+'\')"><i class="bi bi-pencil-square"></i> แก้ไข</button></td></tr>';
+        const hasUpd=statusData[j.jobId]?' <i class="bi bi-pencil-fill text-success" title="มีอัพเดท" style="font-size:10px"></i>':'';
+        h+='<tr><td class="text-center">'+(i+1)+'</td><td class="text-center fw-bold">'+j.jobId+hasUpd+'</td><td class="text-center">'+db+'</td><td>'+(j['หน่วยงาน']||'-')+'</td><td>'+(j['รายละเอียด']||'-')+'</td><td class="text-center" style="color:var(--gold);font-weight:600">'+(j['ช่างผู้รับผิดชอบ']||'').replace('นาย','')+'</td><td class="text-center">'+md+'</td><td class="text-center no-print"><button class="be" onclick="openP(\''+j.jobId+'\')"><i class="bi bi-pencil-square"></i></button></td></tr>';
     });
-    tbody.innerHTML=h;
+    tb.innerHTML=h;
 }
 
-function openPanel(jobId){
-    const j=allJobs.find(x=>x.jobId===jobId);if(!j)return;currentEditJobId=jobId;
-    document.getElementById('panelJob').textContent='JOB '+jobId;
-    document.getElementById('panelDays').textContent=(j['จำนวนวันค้าง']||0)+' วัน';
-    document.getElementById('panelWard').textContent=j['หน่วยงาน']||'-';
-    document.getElementById('panelDesc').textContent=j['รายละเอียด']||'-';
-    document.getElementById('selTech').value=j['ช่างผู้รับผิดชอบ']||TECHS[0];
-    document.getElementById('selMethod').value=j['วิธีซ่อม']||'--เลือกวิธีซ่อม--';
-    const s=localStorage.getItem('bme_'+jobId);
-    if(s){const u=JSON.parse(s);document.getElementById('chkPO').checked=u.po||false;document.getElementById('chkPasdu').checked=u.pasdu||false;document.getElementById('txtNote').value=u.note||'';}
-    else{document.getElementById('chkPO').checked=false;document.getElementById('chkPasdu').checked=false;document.getElementById('txtNote').value='';}
-    new bootstrap.Offcanvas(document.getElementById('updatePanel')).show();
+// === Offcanvas ===
+function openP(id){
+    const j=allJobs.find(x=>x.jobId===id);if(!j)return;curEdit=id;
+    document.getElementById('pJob').textContent='JOB '+id;
+    document.getElementById('pDays').textContent=(j['จำนวนวันค้าง']||0)+' วัน';
+    document.getElementById('pWard').textContent=j['หน่วยงาน']||'-';
+    document.getElementById('pDesc').textContent=j['รายละเอียด']||'-';
+    document.getElementById('sT').value=j['ช่างผู้รับผิดชอบ']||TECHS[0];
+    document.getElementById('sM').value=j['วิธีซ่อม']||'--เลือกวิธีซ่อม--';
+    const u=statusData[id];
+    document.getElementById('cPO').checked=u?.po||false;
+    document.getElementById('cPas').checked=u?.pasdu||false;
+    document.getElementById('tNote').value=u?.note||'';
+    new bootstrap.Offcanvas(document.getElementById('uPanel')).show();
 }
 
-function saveUpdate(){
-    if(!currentEditJobId)return;const j=allJobs.find(x=>x.jobId===currentEditJobId);if(!j)return;
-    const tech=document.getElementById('selTech').value,method=document.getElementById('selMethod').value;
-    const po=document.getElementById('chkPO').checked,pasdu=document.getElementById('chkPasdu').checked,note=document.getElementById('txtNote').value;
-    localStorage.setItem('bme_'+currentEditJobId,JSON.stringify({tech,method,po,pasdu,note,updatedAt:new Date().toISOString()}));
-    j['ช่างผู้รับผิดชอบ']=tech;j['วิธีซ่อม']=method;j['สถานะ']=getStatus(method);
-    updateMetrics();buildCharts();buildTechCards();renderTable();
-    bootstrap.Offcanvas.getInstance(document.getElementById('updatePanel')).hide();
-    const t=document.getElementById('toast');t.style.display='block';t.textContent='\u2705 บันทึก JOB '+currentEditJobId+' สำเร็จ!';setTimeout(()=>{t.style.display='none';},3000);
+function saveUpd(){
+    if(!curEdit)return;const j=allJobs.find(x=>x.jobId===curEdit);if(!j)return;
+    const tech=document.getElementById('sT').value,method=document.getElementById('sM').value;
+    const po=document.getElementById('cPO').checked,pasdu=document.getElementById('cPas').checked,note=document.getElementById('tNote').value;
+    statusData[curEdit]={tech,method,po,pasdu,note,at:new Date().toISOString()};
+    j['ช่างผู้รับผิดชอบ']=tech;j['วิธีซ่อม']=method;
+    saveLocalStatus();updateMetrics();buildCharts();buildTechCards();renderTbl();
+    bootstrap.Offcanvas.getInstance(document.getElementById('uPanel')).hide();
+    showToast('\u2705 บันทึก JOB '+curEdit+' สำเร็จ!');
 }
 
+function closeJob(){
+    if(!curEdit)return;
+    const method=document.getElementById('sM').value;
+    if(method==='--เลือกวิธีซ่อม--'){showToast('กรุณาเลือกวิธีซ่อมก่อนปิดงาน','er');return;}
+    if(!confirm('ยืนยันปิดงาน JOB '+curEdit+'?\nงานจะหายจาก Dashboard'))return;
+    // Save final status
+    saveUpd();
+    // Add to closed list
+    if(!closedJobs.includes(curEdit))closedJobs.push(curEdit);
+    allJobs=allJobs.filter(j=>j.jobId!==curEdit);
+    saveLocalStatus();updateMetrics();buildCharts();buildTechCards();renderTbl();
+    bootstrap.Offcanvas.getInstance(document.getElementById('uPanel')).hide();
+    showToast('\u{1F389} ปิดงาน JOB '+curEdit+' เรียบร้อย!');
+}
+
+// === Admin ===
+function showAdminLogin(){document.getElementById('adminOverlay').classList.add('show');document.getElementById('adminPw').focus();}
+function hideAdmin(){document.getElementById('adminOverlay').classList.remove('show');}
+function adminAuth(){
+    if(document.getElementById('adminPw').value===ADMIN_PW){
+        document.getElementById('adminLogin').style.display='none';
+        document.getElementById('adminPanel').style.display='block';
+        document.getElementById('ghToken').value=ghToken();
+        adminLog('Admin login สำเร็จ');
+    }else{showToast('รหัสผ่านไม่ถูกต้อง','er');}
+}
+
+function adminLog(msg){
+    const l=document.getElementById('adminLog');
+    l.innerHTML='['+new Date().toLocaleTimeString('th')+'] '+msg+'<br>'+l.innerHTML;
+}
+
+async function syncToGitHub(){
+    const tk=document.getElementById('ghToken').value;
+    if(!tk){showToast('กรุณาใส่ GitHub Token','er');return;}
+    localStorage.setItem('gh_pat',tk);
+    try{
+        adminLog('กำลัง sync status.json → GitHub...');
+        statusData._closed=closedJobs;
+        await ghPut('status.json',JSON.stringify(statusData,null,2),'Sync status updates from dashboard');
+        adminLog('\u2705 Sync สำเร็จ!');
+        showToast('\u2705 Sync ข้อมูลไป GitHub สำเร็จ!');
+        document.getElementById('syncBadge').innerHTML='<i class="bi bi-cloud-check me-1"></i>Synced';
+        document.getElementById('syncBadge').className='sync-status sync-ok';
+    }catch(e){adminLog('\u274C Error: '+e.message);showToast('Sync ล้มเหลว: '+e.message,'er');}
+}
+
+async function adminUpload(){
+    const tk=document.getElementById('ghToken').value;
+    if(!tk){showToast('กรุณาใส่ GitHub Token','er');return;}
+    localStorage.setItem('gh_pat',tk);
+
+    const raw=document.getElementById('pasteData').value.trim();
+    if(!raw){showToast('กรุณาวางข้อมูลก่อน','er');return;}
+
+    adminLog('กำลังแปลงข้อมูล...');
+    const lines=raw.split('\n').filter(l=>l.trim());
+    const newJobs=[];
+    lines.forEach((line,i)=>{
+        const cols=line.split('\t');
+        if(cols.length<5||cols[0].toLowerCase()==='ลำดับ'||cols[0].toLowerCase()==='job')return;
+        // Try to detect: JOB_ID, หน่วยงาน, รายละเอียด, วันแจ้งซ่อม, วันค้าง, ช่าง
+        let jobId,ward,detail,date,days,tech;
+        if(cols.length>=6){
+            jobId=cols[0].trim();ward=cols[1].trim();detail=cols[2].trim();date=cols[3].trim();days=parseInt(cols[4])||0;tech=cols[5].trim();
+        }else{
+            jobId=cols[0].trim();ward=cols[1].trim();detail=cols[2].trim();date=cols[3].trim();days=parseInt(cols[4])||0;tech='นายสุรศักดิ์ พึ่งเล่ห์';
+        }
+        if(jobId&&!isNaN(parseInt(jobId))){
+            // Preserve existing status if job already has one
+            const existStatus=statusData[jobId];
+            newJobs.push({
+                jobId,
+                'หน่วยงาน':ward,
+                'รายละเอียด':detail,
+                'วันแจ้งซ่อม':date,
+                'จำนวนวันค้าง':days,
+                'สถานะ':existStatus?existStatus.method||'รอมอบหมาย':'รอมอบหมาย',
+                'วิธีซ่อม':existStatus?.method||'--เลือกวิธีซ่อม--',
+                'ช่างผู้รับผิดชอบ':existStatus?.tech||tech
+            });
+        }
+    });
+
+    if(!newJobs.length){showToast('ไม่พบข้อมูลที่ใช้ได้','er');return;}
+
+    // Remove closed jobs from new data
+    const activeJobs=newJobs.filter(j=>!closedJobs.includes(j.jobId));
+
+    adminLog('พบ '+newJobs.length+' รายการ (active: '+activeJobs.length+')');
+
+    try{
+        const dataObj={updateDate:new Date().toLocaleDateString('th-TH',{day:'2-digit',month:'2-digit',year:'numeric'}),totalJobs:activeJobs.length,jobs:activeJobs};
+        adminLog('กำลังอัพโหลด data.json → GitHub...');
+        await ghPut('data.json',JSON.stringify(dataObj,null,2),'Admin upload new data ('+activeJobs.length+' jobs)');
+        adminLog('\u2705 data.json อัพโหลดสำเร็จ!');
+
+        // Also sync status
+        await ghPut('status.json',JSON.stringify(statusData,null,2),'Sync status with data upload');
+        adminLog('\u2705 status.json sync สำเร็จ!');
+
+        showToast('\u2705 อัพโหลด '+activeJobs.length+' รายการ สำเร็จ!');
+
+        // Reload
+        setTimeout(()=>location.reload(),2000);
+    }catch(e){adminLog('\u274C Error: '+e.message);showToast('อัพโหลดล้มเหลว: '+e.message,'er');}
+}
+
+// === CSV ===
 function exportCSV(){
-    let csv='\uFEFF\u0e25\u0e33\u0e14\u0e31\u0e1a,\u0e40\u0e25\u0e02 JOB,\u0e27\u0e31\u0e19\u0e04\u0e49\u0e32\u0e07,\u0e2b\u0e19\u0e48\u0e27\u0e22\u0e07\u0e32\u0e19,\u0e23\u0e32\u0e22\u0e25\u0e30\u0e40\u0e2d\u0e35\u0e22\u0e14,\u0e0a\u0e48\u0e32\u0e07\u0e1c\u0e39\u0e49\u0e23\u0e31\u0e1a\u0e1c\u0e34\u0e14\u0e0a\u0e2d\u0e1a,\u0e27\u0e34\u0e18\u0e35\u0e0b\u0e48\u0e2d\u0e21\n';
-    allJobs.forEach((j,i)=>{csv+=(i+1)+',"'+j.jobId+'",'+(j['\u0e08\u0e33\u0e19\u0e27\u0e19\u0e27\u0e31\u0e19\u0e04\u0e49\u0e32\u0e07']||0)+',"'+(j['\u0e2b\u0e19\u0e48\u0e27\u0e22\u0e07\u0e32\u0e19']||'').replace(/"/g,'""')+'","'+(j['\u0e23\u0e32\u0e22\u0e25\u0e30\u0e40\u0e2d\u0e35\u0e22\u0e14']||'').replace(/"/g,'""')+'","'+(j['\u0e0a\u0e48\u0e32\u0e07\u0e1c\u0e39\u0e49\u0e23\u0e31\u0e1a\u0e1c\u0e34\u0e14\u0e0a\u0e2d\u0e1a']||'')+'","'+(j['\u0e27\u0e34\u0e18\u0e35\u0e0b\u0e48\u0e2d\u0e21']||'')+'"\n';});
-    const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='\u0e07\u0e32\u0e19\u0e04\u0e49\u0e32\u0e07\u0e0b\u0e48\u0e2d\u0e21_export.csv';a.click();
+    let csv='\uFEFFลำดับ,เลข JOB,วันค้าง,หน่วยงาน,รายละเอียด,ช่าง,วิธีซ่อม\n';
+    allJobs.forEach((j,i)=>{csv+=(i+1)+',"'+j.jobId+'",'+(j['จำนวนวันค้าง']||0)+',"'+(j['หน่วยงาน']||'').replace(/"/g,'""')+'","'+(j['รายละเอียด']||'').replace(/"/g,'""')+'","'+(j['ช่างผู้รับผิดชอบ']||'')+'","'+(j['วิธีซ่อม']||'')+'"\n';});
+    const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'}));a.download='งานค้าง_export.csv';a.click();
 }
 
+// === Init ===
 loadData();
+// Auto-load stored PAT
+if(localStorage.getItem('gh_pat'))document.addEventListener('DOMContentLoaded',()=>{});
 </script>
 </body>
 </html>
